@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="icon" href="/images/i.jpg" type="image/jpeg">
+  <link rel="stylesheet" href="/stylesheets/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const countdownDate = new Date('<%= countdownDate %>').getTime();
+
+      function updateCountdown() {
+        const now = new Date().getTime();
+        const distance = countdownDate - now;
+
+        if (distance < 0) {
+          document.getElementById('countdown-display').innerHTML = '<div class="complete">COUNTDOWN COMPLETE</div>';
+          return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById('days').textContent = days.toString().padStart(2, '0');
+        document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+        document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
+        document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
+
+        // Update progress bar
+        const totalSeconds = Math.floor(distance / 1000);
+        const initialTotalSeconds = Math.floor((countdownDate - new Date('<%= countdownDate %>').getTime() + 7776000000) / 1000); // ~90 days
+        const progress = 100 - (totalSeconds / initialTotalSeconds * 100);
+        document.getElementById('progress-bar').style.width = `${Math.min(progress, 100)}%`;
+      }
+
+      setInterval(updateCountdown, 1000);
+      updateCountdown();
+
+      // Add particle animation
+      createParticles();
+
+      const musicControl = document.getElementById('musicControl');
+      const bgMusic = document.getElementById('bgMusic');
+      let isAttemptingToPlay = false;
+
+      musicControl.addEventListener('click', function() {
+        if (bgMusic.paused && !isAttemptingToPlay) {
+          isAttemptingToPlay = true;
+          musicControl.classList.add('loading');
+
+          bgMusic.play()
+                  .then(() => {
+                    musicControl.classList.add('playing');
+                    musicControl.classList.remove('loading');
+                    isAttemptingToPlay = false;
+                  })
+                  .catch(err => {
+                    console.log('Error playing music:', err);
+                    musicControl.classList.remove('loading');
+                    isAttemptingToPlay = false;
+                  });
+        } else if (!bgMusic.paused) {
+          bgMusic.pause();
+          musicControl.classList.remove('playing');
+        }
+      });
+
+      bgMusic.addEventListener('canplaythrough', () => {
+        if (!bgMusic.paused) {
+          musicControl.classList.add('playing');
+        }
+      });
+
+      const tryhardButton = document.getElementById('tryhardButton');
+      const tryhardTooltip = document.getElementById('tryhardTooltip');
+
+      tryhardButton.addEventListener('click', function() {
+        tryhardTooltip.classList.toggle('show');
+
+        if (tryhardTooltip.classList.contains('show')) {
+          setTimeout(() => {
+            tryhardTooltip.classList.remove('show');
+          }, 10000);
+        }
+      });
+
+      document.addEventListener('click', function(event) {
+        if (!tryhardButton.contains(event.target) && !tryhardTooltip.contains(event.target)) {
+          tryhardTooltip.classList.remove('show');
+        }
+      });
+    });
+
+    function createParticles() {
+      const particles = document.getElementById('particles');
+      for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = `${Math.random() * 100}vw`;
+        particle.style.top = `${Math.random() * 100}vh`;
+        particle.style.animationDuration = `${Math.random() * 20 + 10}s`;
+        particle.style.animationDelay = `${Math.random() * 10}s`;
+        particles.appendChild(particle);
+      }
+    }
+
+  </script>
+</head>
+<body>
+<audio id="bgMusic" loop preload="none" controlsList="nodownload">
+  <source src="/audio/videoplayback.mp3" type="audio/mp3">
+  Your browser does not support the audio element.
+</audio>
+<div id="particles"></div>
+
+<div class="container">
+  <div class="content">
+    <div class="controls-container">
+      <div class="tryhard-button" id="tryhardButton">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+        </svg>
+        <div class="tooltip" id="tryhardTooltip">
+          <%- tryhardMessage || "" %>
+        </div>
+      </div>
+
+      <div class="music-control" id="musicControl">
+        <svg class="play-icon" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <svg class="pause-icon" viewBox="0 0 24 24">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
+        <div class="loading-indicator"></div>
+      </div>
+    </div>
+
+    <img src="/images/i.jpg" alt="Countdown Image" class="countdown-image">
+    <h1 class="title">Time Remaining</h1>
+
+    <div class="progress-container">
+      <div id="progress-bar" class="progress-bar"></div>
+    </div>
+    <div class="progress-text">Countdown Progress</div>
+
+    <div id="countdown-display" class="countdown-display">
+      <div class="countdown-segment">
+        <div id="days" class="countdown-value">00</div>
+        <div class="countdown-label">Days</div>
+      </div>
+      <div class="countdown-segment">
+        <div id="hours" class="countdown-value">00</div>
+        <div class="countdown-label">Hours</div>
+      </div>
+      <div class="countdown-segment">
+        <div id="minutes" class="countdown-value">00</div>
+        <div class="countdown-label">Minutes</div>
+      </div>
+      <div class="countdown-segment">
+        <div id="seconds" class="countdown-value">00</div>
+        <div class="countdown-label">Seconds</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
