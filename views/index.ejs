@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <title><%= title %></title>
   <link rel="icon" href="/images/i.jpg" type="image/jpeg">
   <link rel="stylesheet" href="/stylesheets/style.css">
@@ -10,7 +12,60 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const countdownDate = new Date('<%= countdownDate %>').getTime();
-
+      
+      let wakeLock = null;
+      
+      async function requestWakeLock() {
+        try {
+          if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Wake Lock is active');
+            
+            document.addEventListener('visibilitychange', async () => {
+              if (document.visibilityState === 'visible' && wakeLock === null) {
+                wakeLock = await navigator.wakeLock.request('screen');
+              }
+            });
+          } else {
+            keepScreenAwake();
+          }
+        } catch (err) {
+          console.log('Wake Lock request failed:', err.message);
+          keepScreenAwake();
+        }
+      }
+      
+      function keepScreenAwake() {
+        const video = document.createElement('video');
+        video.setAttribute('loop', '');
+        video.setAttribute('playsinline', '');
+        video.setAttribute('muted', '');
+        video.setAttribute('width', '1');
+        video.setAttribute('height', '1');
+        video.style.position = 'absolute';
+        video.style.opacity = '0.01';
+        document.body.appendChild(video);
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext('2d');
+        ctx.fillRect(0, 0, 1, 1);
+        
+        canvas.toBlob(function(blob) {
+          const url = URL.createObjectURL(blob);
+          video.src = url;
+          video.play().catch(e => console.log('Video play error:', e));
+        });
+        
+        setInterval(() => {
+          if (!document.hidden) {
+            document.dispatchEvent(new Event('mousemove'));
+          }
+        }, 30000);
+      }
+      
+      requestWakeLock();
       function updateCountdown() {
         const now = new Date().getTime();
         const distance = countdownDate - now;
@@ -30,7 +85,6 @@
         document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
         document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
 
-        // Update progress bar
         const totalSeconds = Math.floor(distance / 1000);
         const initialTotalSeconds = Math.floor((countdownDate - new Date('<%= countdownDate %>').getTime() + 7776000000) / 1000); // ~90 days
         const progress = 100 - (totalSeconds / initialTotalSeconds * 100);
@@ -40,7 +94,6 @@
       setInterval(updateCountdown, 1000);
       updateCountdown();
 
-      // Add particle animation
       createParticles();
 
       const musicControl = document.getElementById('musicControl');
